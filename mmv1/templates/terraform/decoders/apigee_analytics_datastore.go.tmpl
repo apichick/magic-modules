@@ -1,0 +1,4 @@
+tokens := strings.Split(res["self"].(string), "/")
+datastore_id := tokens[len(tokens)-1]
+res["datastore_id"] = datastore_id
+return res, nil

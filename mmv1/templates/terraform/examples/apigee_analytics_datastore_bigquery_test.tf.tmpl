@@ -1,0 +1,112 @@
+resource "google_project" "project" {
+  project_id      = "tf-test%{random_suffix}"
+  name            = "tf-test%{random_suffix}"
+  org_id          = "{{index $.TestEnvVars "org_id"}}"
+  billing_account = "{{index $.TestEnvVars "billing_account"}}"
+  deletion_policy = "DELETE"
+}
+
+resource "google_project_service" "apigee" {
+  project = google_project.project.project_id
+  service = "apigee.googleapis.com"
+}
+
+resource "google_project_service" "bigquery" {
+  project                    = google_project.project.project_id
+  service                    = "bigquery.googleapis.com"
+  disable_dependent_services = true  
+}
+
+resource "google_project_service" "servicenetworking" {
+  project = google_project.project.project_id
+  service = "servicenetworking.googleapis.com"
+  depends_on = [
+    google_project_service.apigee
+  ]
+}
+
+resource "google_project_service" "compute" {
+  project    = google_project.project.project_id
+  service    = "compute.googleapis.com"
+  depends_on = [
+    google_project_service.servicenetworking
+  ]
+}
+
+resource "google_project_service_identity" "apigee_sa" {
+  project = google_project.project.project_id
+  service = "apigee.googleapis.com"
+}
+
+resource "google_compute_network" "apigee_network" {
+  name       = "apigee-network"
+  project    = google_project.project.project_id
+  depends_on = [
+    google_project_service.compute
+  ]
+}
+
+resource "google_compute_global_address" "apigee_range" {
+  name          = "apigee-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.apigee_network.id
+  project       = google_project.project.project_id
+}
+
+resource "google_service_networking_connection" "apigee_vpc_connection" {
+  network                 = google_compute_network.apigee_network.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.apigee_range.name]
+  depends_on              = [
+    google_project_service.servicenetworking
+  ]
+}
+
+resource "google_apigee_organization" "apigee_org" {
+  analytics_region   = "us-central1"
+  project_id         = google_project.project.project_id
+  authorized_network = google_compute_network.apigee_network.id
+  depends_on         = [
+    google_service_networking_connection.apigee_vpc_connection,
+  ]
+}
+
+resource "google_bigquery_dataset" "dataset" {
+  dataset_id                  = "datastore"      
+  project                     = google_project.project.project_id  
+  description                 = "This is an apigee datastore"
+  location                    = "US"
+  default_table_expiration_ms = 3600000
+  depends_on = [
+    google_project_service.bigquery
+  ]
+}
+
+resource "google_bigquery_dataset_iam_binding" "binding" {
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
+  project    = google_project.project.project_id  
+  role       = "roles/bigquery.dataEditor"
+  members    = [
+    google_project_service_identity.apigee_sa.member
+  ]
+}
+
+resource "google_project_iam_binding" "binding" {
+  role    = "roles/bigquery.jobUser"
+  project = google_project.project.project_id
+  members = [
+    google_project_service_identity.apigee_sa.member    
+  ]
+}
+resource "google_apigee_analytics_datastore" "{{$.PrimaryResourceId}}" {
+  display_name     = "BigQuery analytics datastore"
+  org_id           = google_apigee_organization.apigee_org.id
+  target_type      = "bigquery"
+  datastore_config {
+     project_id   = google_project.project.project_id
+     dataset_name = google_bigquery_dataset.dataset.id
+     table_prefix = "apigee"    
+  } 
+}

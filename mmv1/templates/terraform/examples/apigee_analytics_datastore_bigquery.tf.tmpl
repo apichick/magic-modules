@@ -1,0 +1,65 @@
+data "google_client_config" "current" {}
+
+resource "google_project_service_identity" "apigee_sa" {
+  service = "apigee.googleapis.com"
+}
+
+resource "google_compute_network" "apigee_network" {
+  name       = "apigee-network"
+}
+
+resource "google_compute_global_address" "apigee_range" {
+  name          = "apigee-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.apigee_network.id
+}
+
+resource "google_service_networking_connection" "apigee_vpc_connection" {
+  network                 = google_compute_network.apigee_network.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.apigee_range.name]
+}
+
+resource "google_apigee_organization" "apigee_org" {
+  analytics_region   = "us-central1"
+  project_id         = data.google_client_config.current.project  
+  authorized_network = google_compute_network.apigee_network.id
+  depends_on         = [
+    google_service_networking_connection.apigee_vpc_connection,
+  ]
+}
+
+resource "google_bigquery_dataset" "dataset" {
+  dataset_id                  = "datastore"      
+  description                 = "This is an apigee datastore"
+  location                    = "US"
+  default_table_expiration_ms = 3600000
+}
+
+resource "google_bigquery_dataset_iam_binding" "binding" {
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  members    = [
+    google_project_service_identity.apigee_sa.member
+  ]
+}
+
+resource "google_project_iam_binding" "binding" {
+  role    = "roles/bigquery.jobUser"
+  project = data.google_client_config.current.project
+  members = [
+    google_project_service_identity.apigee_sa.member    
+  ]
+}
+resource "google_apigee_analytics_datastore" "{{$.PrimaryResourceId}}" {
+  display_name     = "BigQuery analytics datastore"
+  org_id           = google_apigee_organization.apigee_org.id
+  target_type      = "bigquery"
+  datastore_config {
+     project_id   = data.google_client_config.current.project
+     dataset_name = google_bigquery_dataset.dataset.id
+     table_prefix = "apigee"    
+  } 
+}
