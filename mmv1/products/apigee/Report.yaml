@@ -1,0 +1,166 @@
+# Copyright 2024 Google Inc.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+name: "Report"
+description: |
+  A `Report` in Apigee.
+references:
+  guides:
+    "Creating and managing custom reports": "https://cloud.google.com/apigee/docs/api-platform/analytics/create-custom-reports"
+  api: "https://cloud.google.com/apigee/docs/reference/apis/apigee/rest/v1/organizations.reports"
+docs:
+base_url: "reports"
+self_link: "{{org_id}}/reports/{{name}}"
+create_url: "{{org_id}}/reports"
+update_verb: "PATCH"
+update_mask: true
+import_format:
+  - "{{org_id}}/reports/{{name}}"
+  - "{{org_id}}/{{name}}"
+custom_code:
+  custom_import: "templates/terraform/custom_import/apigee_report.go.tmpl"
+examples:
+  - name: "apigee_report_basic"
+    vars:
+      report_name: "my-report"
+    exclude_test: true
+  - name: "apigee_report_basic_test"
+    primary_resource_id: "apigee_report"
+    test_env_vars:
+      org_id: "ORG_ID"
+      billing_account: "BILLING_ACCT"
+    exclude_docs: true
+    skip_vcr: true
+  - name: "apigee_report_full"
+    vars:
+      report_name: "my-report"
+    exclude_test: true
+  - name: "apigee_report_full_test"
+    primary_resource_id: "apigee_report"
+    test_env_vars:
+      org_id: "ORG_ID"
+      billing_account: "BILLING_ACCT"
+    exclude_docs: true
+    skip_vcr: true
+parameters:
+  - name: "orgId"
+    type: String
+    description: |
+      The Apigee Organization associated with the Apigee report,
+      in the format `organizations/{{org_name}}`.
+    url_param_only: true
+    required: true
+    immutable: true
+properties:
+  - name: "name"
+    type: String
+    description: |
+      Unique identifier for the report T his is a legacy field used to encode custom report unique id.
+    required: true
+    immutable: true
+  - name: "displayName"
+    type: String
+    description: |
+      This is the display name for the report.
+    required: true
+    immutable: true
+  - name: "metrics"
+    type: Array
+    description: |
+      This contains the list of metrics.
+    item_type:
+      type: NestedObject
+      properties:
+        - name: "name"
+          type: String
+          description: |
+            Name of the metric.
+        - name: "function"
+          type: String
+          description: |
+            Aggregate function.
+    required: true
+  - name: "dimensions"
+    type: Array
+    description: |
+      This contains the list of dimensions for the report.
+    item_type:
+      type: String
+    required: true
+  - name: "filter"
+    type: String
+    description: |
+      This field contains the filter expression.
+  - name: "createdAt"
+    type: String
+    description: |
+      Unix time when the app was created.
+    output: true
+  - name: "lastModifiedAt"
+    type: String
+    description: |
+      Modified time of this entity as milliseconds since epoch.
+    output: true
+  - name: "properties"
+    type: Array
+    description: |
+      This field contains report properties such as ui metadata etc..
+    item_type:
+      type: NestedObject
+      properties:
+        - name: "property"
+          type: String
+          description: |
+            Name of the property.
+        - name: "value"
+          type: Array
+          description: |
+            Value of the attribute.
+          item_type:
+            type: NestedObject
+            properties:
+              - name: "name"
+                type: String
+                description: |
+                  Key of the attribute.
+              - name: "value"
+                type: String
+                description: |
+                  Value of the attribute.
+  - name: "chartType"
+    type: Enum
+    description: |
+      This field contains the chart type for the report.
+    enum_values:
+      - line
+      - column
+  - name: "timeUnit"
+    type: String
+    description: |
+      This field contains the time unit of aggregation for the report.
+  - name: "organization"
+    type: String
+    description: |
+      Organization name.
+    output: true
+  - name: "environment"
+    type: String
+    description: |
+      Environment name.
+    output: true
+  - name: "lastViewedAt"
+    type: String
+    description: |
+      Output only. Last viewed time of this entity as milliseconds since epoch.
+    output: true
