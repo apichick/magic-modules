@@ -1,12 +1,12 @@
 config := meta.(*transport_tpg.Config)
 
 // current import_formats cannot import fields with forward slashes in their value
-if err := tpgresource.ParseImportId([]string{"(?P<name>.+)"}, d, config); err != nil {
+if err := tpgresource.ParseImportId([]string{"(?P<datastore_id>.+)"}, d, config); err != nil {
 	return nil, err
 }
 
 nameParts := strings.Split(d.Get("name").(string), "/")
-if len(nameParts) == 4 {
+if len(nameParts) == 5 {
 	// `organizations/{{"{{"}}org_name{{"}}"}}/analytics/datastores/{{"{{"}}datastore_id{{"}}"}}`
 	orgId := fmt.Sprintf("organizations/%s", nameParts[1])
 	if err := d.Set("org_id", orgId); err != nil {
@@ -23,7 +23,7 @@ if len(nameParts) == 4 {
 }
 
 // Replace import id for the resource id
-id, err := tpgresource.ReplaceVars(d, config, "{{"{{"}}name{{"}}"}}")
+id, err := tpgresource.ReplaceVars(d, config, "{{"{{"}}datastore_id{{"}}"}}")
 if err != nil {
 	return nil, fmt.Errorf("Error constructing id: %s", err)
 }

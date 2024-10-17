@@ -100,6 +100,7 @@ resource "google_project_iam_binding" "binding" {
     google_project_service_identity.apigee_sa.member    
   ]
 }
+
 resource "google_apigee_analytics_datastore" "{{$.PrimaryResourceId}}" {
   display_name     = "BigQuery analytics datastore"
   org_id           = google_apigee_organization.apigee_org.id

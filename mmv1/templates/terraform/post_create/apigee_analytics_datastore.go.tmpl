@@ -1,0 +1,8 @@
+tokens := strings.Split(res["self"].(string), "/")
+datastore_id := tokens[len(tokens)-1]
+d.Set("datastore_id", datastore_id)
+id2, err := tpgresource.ReplaceVars(d, config, "{{"{{"}}org_id{{"}}"}}/analytics/datastores/{{"{{"}}datastore_id{{"}}"}}")
+if err != nil {
+	return fmt.Errorf("Error constructing id: %s", err)
+}
+d.SetId(id2)

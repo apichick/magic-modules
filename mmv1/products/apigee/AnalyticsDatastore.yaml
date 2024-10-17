@@ -20,18 +20,18 @@ references:
     'Exporting data from Analytics': 'https://cloud.google.com/apigee/docs/api-platform/analytics/export-data'
   api: 'https://cloud.google.com/apigee/docs/reference/apis/apigee/rest/v1/organizations.analytics.datastores'
 docs:
-base_url: '{{ org_id }}/analytics/datastores'
-self_link: '{{org_id}}/analytics/datastores/{{ datastore_id }}'
+base_url: 'analytics/datastores'
+self_link: '{{org_id}}/analytics/datastores/{{datastore_id}}'
 create_url: '{{org_id}}/analytics/datastores'
-delete_url: '{{org_id}}/analytics/datastores/{{ datastore_id }}'
-update_url: '{{org_id}}/analytics/datastores/{{ datastore_id }}'
+delete_url: '{{org_id}}/analytics/datastores/{{datastore_id}}'
+update_url: '{{org_id}}/analytics/datastores/{{datastore_id}}'
 immutable: true
 import_format:
   - '{{org_id}}/analytics/datastores/{{datastore_id}}'
   - '{{org_id}}/{{datastore_id}}'
 custom_code:
   custom_import: 'templates/terraform/custom_import/apigee_analytics_datastore.go.tmpl'
-  decoder: 'templates/terraform/decoders/apigee_analytics_datastore.go.tmpl'
+  post_create: 'templates/terraform/post_create/apigee_analytics_datastore.go.tmpl'
 examples:
   - name: "apigee_analytics_datastore_bigquery"
     exclude_test: true
@@ -41,8 +41,16 @@ examples:
       org_id: "ORG_ID"
       billing_account: "BILLING_ACCT"
     exclude_docs: true
-      # Resource creation race
-    skip_vcr: true      
+    skip_vcr: true    
+  - name: "apigee_analytics_datastore_gcs"
+    exclude_test: true
+  - name: "apigee_analytics_datastore_gcs_test"
+    primary_resource_id: "datastore"
+    test_env_vars:
+      org_id: "ORG_ID"
+      billing_account: "BILLING_ACCT"
+    exclude_docs: true
+    skip_vcr: true          
 parameters:
   - name: 'orgId'
     type: String
@@ -53,12 +61,7 @@ parameters:
     required: true
     immutable: true
 properties:
-  - name: 'datastore_id'
-    type: String
-    description: |
-      UUID of the datastore.    
-    output: true
-  - name: 'display_name'
+  - name: 'displayName'
     type: String
     description: |
       Display name in UI.
